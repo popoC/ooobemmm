@@ -1,0 +1,463 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+
+#include "main.h"
+#include <Registry.hpp>
+#include "stdio.h"
+#include "gEt_uArt.h"
+#include "jpeg.hpp"
+
+
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+
+#pragma link "LPControlDrawLayers"
+#pragma link "SLControlCollection"
+#pragma link "SLScope"
+#pragma link "VCL.LPControl"
+#pragma link "Mitov.VCLTypes"
+#pragma link "SLDataChart"
+#pragma link "SLDataDisplay"
+#pragma resource "*.dfm"
+TForm1 *Form1;
+COMMTIMEOUTS ctmoNew,ctmoOld;
+
+DCB dcbCommPort2,dcbCommPort;
+HANDLE hComm;
+DWORD dwBytesWrite;
+
+gEt_uArt *com_A;
+
+
+
+
+ double AD_data1_Buf[AD_show_rate];
+ double AD_data2_Buf[AD_show_rate];
+ double AD_data3_Buf[AD_show_rate];
+ double AD_data4_Buf[AD_show_rate];
+ double AD_data5_Buf[AD_show_rate];
+ double AD_data6_Buf[AD_show_rate];
+ double AD_data7_Buf[AD_show_rate];
+ double AD_data8_Buf[AD_show_rate];
+
+
+
+  int counter_Hz = 0;
+
+  int showSec = 500;
+  int totShow = showSec;
+
+
+
+ int Control_Mode = 1;
+
+ int thread_mode = 0;
+//---------------------------------------------------------------------------
+__fastcall TForm1::TForm1(TComponent* Owner)
+	: TForm(Owner)
+{
+}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormCreate(TObject *Sender)
+{
+ ComboBox1->Clear();
+  TStringList *CommList = new TStringList;
+  TRegistry *Reg;
+  Reg = new TRegistry;
+  Reg->RootKey = HKEY_LOCAL_MACHINE;
+  Reg->OpenKey("HARDWARE\\DEVICEMAP\\SERIALCOMM\\",false);
+  Reg->GetValueNames(CommList);
+  for( int i=0; i<CommList->Count; i++ )
+  {
+    ComboBox1->Items->Add(Reg->ReadString(CommList->Strings[i]));
+  }
+  ComboBox1->ItemIndex = 0;
+
+  Reg->CloseKey();
+  Reg->Free();
+  delete CommList;
+
+  Button2->Enabled = false;
+}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::Button1Click(TObject *Sender)
+{
+
+
+UnicodeString  connect_mode =  "115200,N,8,1";
+//Form1->DoubleBuffered=true; //讓畫面不再閃爍
+        /* Open RS232 - 115200,8,n,1 */
+        /* 如果PORT超過COM10, 開啟格式為 \\\\.\\COM10 */
+        String str = "\\\\.\\" + ComboBox1->Items->Strings[ComboBox1->ItemIndex];
+        hComm = CreateFile(str.c_str(),
+                           GENERIC_READ | GENERIC_WRITE,
+                           0,
+                           NULL,
+                           OPEN_EXISTING,
+						   0,
+						   NULL);
+
+        if(hComm != INVALID_HANDLE_VALUE)
+		{
+	
+
+			GetCommTimeouts(hComm,&ctmoOld);
+			ctmoNew.ReadTotalTimeoutConstant = 100;
+			ctmoNew.ReadTotalTimeoutMultiplier = 0;
+			ctmoNew.WriteTotalTimeoutMultiplier = 0;
+			ctmoNew.WriteTotalTimeoutConstant = 0;
+			SetCommTimeouts(hComm, &ctmoNew);
+
+			dcbCommPort.DCBlength = sizeof(DCB);
+			GetCommState(hComm, &dcbCommPort);
+			BuildCommDCB(connect_mode.t_str() , &dcbCommPort);
+			SetCommState(hComm, &dcbCommPort);
+
+
+				com_A = new gEt_uArt(false);  //啟動執行緒的執行
+                 thread_mode = 3;
+			Button2->Enabled = true;
+			Button1->Enabled = false;
+			SLScope1->YAxis->AutoScaling->Enabled = false;
+       	    SLScope2->YAxis->AutoScaling->Enabled = false;
+
+		} else {
+                ShowMessage("CreateFile failed with error!");
+        }
+
+}
+//---------------------------------------------------------------------------
+
+
+  int ii = 0;
+  int yy[300];
+  int yy2[300];
+
+void __fastcall TForm1::Button3Click(TObject *Sender)
+{
+
+
+totShow += AD_show_rate;
+if(totShow>=showSec){
+	//		   SLScope1->Channels->Items[0]->Data->Clear();
+	SLScope1->Channels->Items[0]->Data->Clear();
+	SLScope1->Channels->Items[1]->Data->Clear();
+	SLScope1->Channels->Items[2]->Data->Clear();
+	SLScope1->Channels->Items[3]->Data->Clear();
+	SLScope2->Channels->Items[0]->Data->Clear();
+	SLScope2->Channels->Items[1]->Data->Clear();
+	SLScope2->Channels->Items[2]->Data->Clear();
+	SLScope2->Channels->Items[3]->Data->Clear();
+
+	totShow=0;
+//    Chart1->BottomAxis->SetMinMax(showSec,0);//設定左軸為準的上下範圍
+    }
+long int data =0;
+//float Vref = 2.4966;
+float Vref = 2.502;
+float GetV = 0;
+
+						// Raw data
+	  for(int i=0;i<AD_show_rate;i++){
+		  data = (AD_data1_Buf[i]) ;
+		  GetV =  ((float)data/16777214)*(2*Vref) - Vref;
+		  AD_data1_Buf[i] = GetV;
+	  }
+	  for(int i=0;i<AD_show_rate;i++){
+		  data = AD_data2_Buf[i];
+		   GetV =  ((float)data/16777214)*(2*Vref) - Vref;
+			AD_data2_Buf[i] = GetV;
+	  }
+	  for(int i=0;i<AD_show_rate;i++){
+		  data = AD_data3_Buf[i];
+		   GetV =  ((float)data/16777214)*(2*Vref) - Vref;
+		 AD_data3_Buf[i] = GetV;
+	  }
+	  for(int i=0;i<AD_show_rate;i++){
+		  data = AD_data4_Buf[i];
+		   GetV =  ((float)data/16777214)*(2*Vref) - Vref;
+		 AD_data4_Buf[i] = GetV;
+	  }
+	  for(int i=0;i<AD_show_rate;i++){
+		  data = (AD_data5_Buf[i]) ;
+		  GetV =  ((float)data/16777214)*(2*Vref) - Vref;
+		  AD_data5_Buf[i] = GetV;
+	  }
+	  for(int i=0;i<AD_show_rate;i++){
+		  data = AD_data6_Buf[i];
+		   GetV =  ((float)data/16777214)*(2*Vref) - Vref;
+			AD_data6_Buf[i] = GetV;
+	  }
+	  for(int i=0;i<AD_show_rate;i++){
+		  data = AD_data7_Buf[i];
+		   GetV =  ((float)data/16777214)*(2*Vref) - Vref;
+		 AD_data7_Buf[i] = GetV;
+	  }
+	  for(int i=0;i<AD_show_rate;i++){
+		  data = AD_data8_Buf[i];
+		   GetV =  ((float)data/16777214)*(2*Vref) - Vref;
+		 AD_data8_Buf[i] = GetV;
+	  }
+
+
+
+
+
+  SLScope1->Channels->Items[0]->Data->AddYData(AD_data1_Buf,AD_show_rate);
+  SLScope1->Channels->Items[1]->Data->AddYData(AD_data2_Buf,AD_show_rate);
+  SLScope1->Channels->Items[2]->Data->AddYData(AD_data3_Buf,AD_show_rate);
+  SLScope1->Channels->Items[3]->Data->AddYData(AD_data4_Buf,AD_show_rate);
+
+
+  SLScope2->Channels->Items[0]->Data->AddYData(AD_data5_Buf,AD_show_rate);
+  SLScope2->Channels->Items[1]->Data->AddYData(AD_data6_Buf,AD_show_rate);
+  SLScope2->Channels->Items[2]->Data->AddYData(AD_data7_Buf,AD_show_rate);
+  SLScope2->Channels->Items[3]->Data->AddYData(AD_data8_Buf,AD_show_rate);
+
+
+
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm1::CheckBox3Click(TObject *Sender)
+{
+  if(CheckBox3->Checked){
+	  SLScope1->XAxis->ScaleMode = smLogarithmic;
+	  SLScope2->XAxis->ScaleMode = smLogarithmic;
+  }
+  else{
+	  SLScope1->XAxis->ScaleMode = smLinear;
+	  SLScope2->XAxis->ScaleMode = smLinear;
+  }
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::CheckBox4Click(TObject *Sender)
+{
+   if(CheckBox4->Checked){
+	  SLScope1->YAxis->ScaleMode = smLogarithmic;
+		  SLScope2->YAxis->ScaleMode = smLogarithmic;
+  }
+  else{
+	  SLScope1->YAxis->ScaleMode = smLinear;
+	  	  SLScope2->YAxis->ScaleMode = smLinear;
+  }
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button2Click(TObject *Sender)
+{
+  thread_mode = 0;
+CloseHandle(hComm);
+  delete(com_A);
+	Button1->Enabled = true;
+	Button2->Enabled = 0;
+
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button4Click(TObject *Sender)
+{
+char str[8]={0};
+
+if(thread_mode!=3)
+{
+	str[0] = '#'; 	str[1] = '#'; //
+	str[2] = 0;  	str[3] = 3; //
+	str[4] = '*'; //
+
+	for(int i=0;i<5;i++){
+	  WriteFile(hComm, &str[i], 1, &dwBytesWrite, NULL);
+	  Sleep(10);
+	}
+	  thread_mode = 3;
+	  Sleep(300);
+}
+
+
+  //Timer2->Enabled = false;
+	str[0] = '@'; //
+	str[1] = 4; //
+	str[2] = 'A'; //
+	str[3] = '$'; //
+
+UnicodeString  uStr = str;
+
+WriteFile(hComm, str, 4, &dwBytesWrite, NULL);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button5Click(TObject *Sender)
+{
+//---            命令格式 @XM......     $
+
+	   char str[8]={0};
+
+if(thread_mode!=3)
+{
+	str[0] = '#'; 	str[1] = '#'; //
+	str[2] = 0;  	str[3] = 3; //
+	str[4] = '*'; //
+
+	for(int i=0;i<5;i++){
+	  WriteFile(hComm, &str[i], 1, &dwBytesWrite, NULL);
+	  Sleep(10);
+	}
+	  thread_mode = 3;
+	  Sleep(300);
+}
+
+
+
+
+	str[0] = '@'; 	str[1] = 4; //
+	str[2] = 'T'; 	str[3] = '$'; //
+WriteFile(hComm, str, 4, &dwBytesWrite, NULL);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::_ScreenSave(String File_Name , int File_Type)
+{
+
+    TJPEGImage *jpg = new TJPEGImage();
+    Graphics::TBitmap *bmp = new Graphics::TBitmap();
+
+    bmp->Width=Screen->Width;
+    bmp->Height=Screen->Height;
+
+    String my_filename;
+    my_filename=Trim(File_Name);
+ //   if (my_filename==1)
+    {
+        if (File_Type==0)
+        my_filename=File_Name+"_"+FormatDateTime("mmdd_hhnnss_zzz",Now())+".bmp"; //流水號檔名
+        else
+        my_filename=File_Name+"_"+FormatDateTime("mmdd_hhnnss_zzz",Now())+".jpg"; //流水號檔名
+    }
+
+    HWND d;
+    HDC dc;
+
+   if((d=GetDesktopWindow())!=NULL)
+    {
+        dc=GetDC(d);
+        BitBlt(bmp->Canvas->Handle,0,0,bmp->Width,bmp->Height,dc,0,0,SRCCOPY);
+        ReleaseDC(d,dc);
+        if (File_Type==0)
+        bmp->SaveToFile(my_filename);
+        else
+        {
+        jpg->Assign(bmp);
+        jpg->SaveToFile(my_filename);
+        }
+    }
+    delete jpg;
+    delete bmp;
+
+}
+
+
+void __fastcall TForm1::Button6Click(TObject *Sender)
+{
+char str[8]={0};
+if(thread_mode!=3)
+{
+	str[0] = '#'; 	str[1] = '#'; //
+	str[2] = 0;  	str[3] = 3; //
+	str[4] = '*'; //
+
+	for(int i=0;i<5;i++){
+	  WriteFile(hComm, &str[i], 1, &dwBytesWrite, NULL);
+	  Sleep(10);
+	}
+	  thread_mode = 3;
+	  Sleep(300);
+}
+
+
+
+  String ch;
+
+  ch = "TB";
+	  if (!InputQuery("輸入啟動序號", "EX: TB31", ch))
+		   {
+			  ShowMessage("有問題嗎?");   return;
+		   }
+	str[0] = '@'; 	str[1] = 4; //
+	str[2] = 'S'; 	str[3] = '$'; //
+    str[4] = 0; //
+WriteFile(hComm, str, 4, &dwBytesWrite, NULL);
+
+
+			  ShowMessage("請確認OBS系統內部燈是否開始閃爍");
+_ScreenSave(ch,1);
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::CheckBox5Click(TObject *Sender)
+{
+  if(CheckBox5->Checked){
+	  SLScope1->YAxis->AutoScaling->Enabled = true;
+	  SLScope2->YAxis->AutoScaling->Enabled = true;
+
+  }
+  else{
+	  SLScope1->YAxis->AutoScaling->Enabled = false;
+ 	  SLScope2->YAxis->AutoScaling->Enabled = false;
+  }
+}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::Timer1Timer(TObject *Sender)
+{
+    Button6->Caption = counter_Hz;
+	counter_Hz = 0;
+
+}
+//---------------------------------------------------------------------------
+
+
+
+
+
+
+void __fastcall TForm1::Button7Click(TObject *Sender)
+{
+ SYSTEMTIME st;
+  GetLocalTime(&st);
+
+String s;
+//---            命令格式 @XM......     $
+//--             開始     @
+//-              命令字數 X
+//-              命令模式 M
+//--             結束     $
+char str[11]={0};
+	str[0] = '@'; //
+	str[1] = 11;   //
+	str[2] = 't'; // 0x7A , need bigger than '0x60'
+		str[3] = st.wYear-2000;
+		str[4] = st.wMonth;
+		str[5] = st.wDay;
+		str[6] = st.wHour;
+		str[7] = st.wMinute;
+		str[8] = st.wSecond;
+        str[9] = int((st.wMilliseconds)*0.125);
+	str[10] = '$'; //
+
+       char stb = Edit6->Text.ToInt();      //同步秒數
+        while(str[8] == stb){
+          stb = Edit6->Text.ToInt();
+          Application->ProcessMessages();
+        }
+
+         str[8] = stb+1;
+       WriteFile(hComm, str, 11, &dwBytesWrite, NULL);
+}
+//---------------------------------------------------------------------------
+

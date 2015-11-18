@@ -1,0 +1,208 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+
+#include "main.h"
+#include "gEt_uArt.h"
+#pragma package(smart_init)
+extern HANDLE hComm;
+unsigned char InBuffer[512];
+char InBuff[512];
+
+char gEt_dAta[512];
+  String stime;
+    String stime2;
+
+extern int counter_Hz;
+
+	int AD_value= 0;
+	int AD_CH;
+	int AD_count =0;
+
+  float nEw_ms = 0;
+   AnsiString ST ;
+
+double AD_data1[AD_show_rate];
+double AD_data2[AD_show_rate];
+double AD_data3[AD_show_rate];
+double AD_data4[AD_show_rate];
+double AD_data5[AD_show_rate];
+double AD_data6[AD_show_rate];
+double AD_data7[AD_show_rate];
+double AD_data8[AD_show_rate];
+
+extern double AD_data1_Buf[AD_show_rate];
+extern double AD_data2_Buf[AD_show_rate];
+extern double AD_data3_Buf[AD_show_rate];
+extern double AD_data4_Buf[AD_show_rate];
+extern double AD_data5_Buf[AD_show_rate];
+extern double AD_data6_Buf[AD_show_rate];
+extern double AD_data7_Buf[AD_show_rate];
+extern double AD_data8_Buf[AD_show_rate];
+
+extern int thread_mode;
+//---------------------------------------------------------------------------
+
+//   Important: Methods and properties of objects in VCL can only be
+//   used in a method called using Synchronize, for example:
+//
+//      Synchronize(&UpdateCaption);
+//
+//   where UpdateCaption could look like:
+//
+//      void __fastcall gEt_uArt::UpdateCaption()
+//      {
+//        Form1->Caption = "Updated in a thread";
+//      }
+//---------------------------------------------------------------------------
+
+__fastcall gEt_uArt::gEt_uArt(bool CreateSuspended)
+	: TThread(CreateSuspended)
+{
+}
+//---------------------------------------------------------------------------
+void __fastcall gEt_uArt::Execute()
+{
+	//---- Place thread code here ----
+	 while(1)
+    {
+          if(Terminated) return;
+          if(hComm == INVALID_HANDLE_VALUE)return;
+             DWORD dwBytesRead,dwError;
+              COMSTAT cs;
+             char Buf;
+			ClearCommError(hComm,&dwError,&cs);  //獲取 COM狀態
+		 if (cs.cbInQue > sizeof(InBuffer))   //如果buffer資料大於InBuff則清空buffer
+         {
+			  PurgeComm(hComm,PURGE_RXCLEAR);
+			  continue;
+         }
+
+		 if(thread_mode == 2){
+                Sleep(30);
+		   ReadFile(hComm, InBuff, 255, &dwBytesRead, NULL);
+			   if(dwBytesRead)
+			   {
+
+				InBuff[dwBytesRead] = 0; // NULL TERMINATE THE STRING
+				  ST =  InBuff;
+				  Synchronize(UpdateSeascan);
+			   }
+
+		 }
+		 else if(thread_mode == 3){
+
+		  ReadFile(hComm, &Buf, 1, &dwBytesRead, NULL);
+			 if(dwBytesRead)
+			 {
+				  if(Buf=='t'){
+			  // Sleep(1);
+				   ReadFile(hComm, InBuffer,10, &dwBytesRead, NULL);
+				   stime = "";
+				 if(InBuffer[0] < 10)
+				   stime += "200";
+                 else
+                   stime += "20";
+				   stime += InBuffer[0];      stime = stime +"/";
+				   stime += InBuffer[1];      stime = stime +"/";
+				   stime += InBuffer[2];      stime = stime +" ";
+				   stime += InBuffer[3];      stime = stime +" :";
+				   stime += InBuffer[4];      stime = stime +" :";
+				   stime += InBuffer[5];      stime = stime +" .";
+				  nEw_ms =   ((float)InBuffer[6] / 125)*1000 + ((float)InBuffer[7]/10);
+				  stime += FloatToStrF( nEw_ms , ffFixed ,5 , 2 );
+				  stime = stime +"  ";
+
+				Synchronize(UpdateCaption);
+               }
+				  if(Buf=='u'){
+			  // Sleep(1);
+				   ReadFile(hComm, InBuffer,10, &dwBytesRead, NULL);
+                        stime2 = "";
+				 if(InBuffer[0] < 10)
+				   stime2 += "diff = ";
+				 else
+
+				   stime2 += InBuffer[0];
+				   stime2 += InBuffer[1];
+				   stime2 += InBuffer[2];
+				   stime2 += InBuffer[3];
+				   stime2 += InBuffer[4];      stime2 = stime2 +" :";
+				   stime2 += InBuffer[5];      stime2 = stime2 +" .";
+
+
+				Synchronize(UpdateCaption);
+               }
+
+               if(Buf=='d'){                   //    Sleep(1);
+                    AD_value = 0;
+                    ReadFile(hComm, InBuffer,5, &dwBytesRead, NULL);
+                    AD_value += (unsigned  char)InBuffer[0]<<16;
+                    AD_value += (unsigned  char)InBuffer[1]<<8;
+					AD_value += (unsigned  char)InBuffer[2];
+
+				   (AD_value > 0x7fffff) ?  AD_value = AD_value - 0x800000 :  AD_value = AD_value + 0x800000;
+
+                    AD_CH = InBuffer[3];
+                    Synchronize(ShowAD);
+               }
+			 }
+		  }
+
+
+
+
+
+     }
+
+}
+//---------------------------------------------------------------------------
+void __fastcall gEt_uArt::UpdateSeascan()
+{
+
+ // Form1->Memo1->Lines->Add(ST);
+
+}
+void __fastcall gEt_uArt::UpdateCaption()
+{                  counter_Hz++;
+Form1->Label1->Caption = stime;
+Form1->Label2->Caption = stime2;
+
+
+//stime = "";
+  //	  Form1->Memo1->Lines->Add( String(gEt_dAta)+ IntToStr(da_con) );
+}
+
+
+void __fastcall gEt_uArt::ShowAD()
+{
+
+  if(AD_CH==0){  AD_data1[AD_count] =  AD_value; counter_Hz++;}
+  if(AD_CH==1){  AD_data2[AD_count] =  AD_value; }
+  if(AD_CH==2){  AD_data3[AD_count] =  AD_value;  }
+  if(AD_CH==3){  AD_data4[AD_count] =  AD_value; }
+  if(AD_CH==4){  AD_data5[AD_count] =  AD_value; }
+  if(AD_CH==5){  AD_data6[AD_count] =  AD_value; }
+  if(AD_CH==6){  AD_data7[AD_count] =  AD_value; }
+  if(AD_CH==7){  AD_data8[AD_count] =  AD_value; AD_count++;}
+
+
+
+  if(AD_count==AD_show_rate){
+	for(int ii=0;ii<AD_show_rate;ii++){
+	AD_data1_Buf[ii]= AD_data1[ii];
+	AD_data2_Buf[ii]= AD_data2[ii];
+	AD_data3_Buf[ii]= AD_data3[ii];
+	AD_data4_Buf[ii]= AD_data4[ii];
+	AD_data5_Buf[ii]= AD_data5[ii];
+	AD_data6_Buf[ii]= AD_data6[ii];
+	AD_data7_Buf[ii]= AD_data7[ii];
+	AD_data8_Buf[ii]= AD_data8[ii];
+
+	}
+   AD_count = 0;
+   Form1->Button3->Click();
+  }
+
+}

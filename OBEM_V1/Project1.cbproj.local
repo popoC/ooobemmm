@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2013/01/08 13:48:25.000.024,=C:\Users\po\Documents\RAD Studio\Projects\Unit1.cpp</Transaction>
+    <Transaction>2013/01/08 13:52:28.000.251,C:\Users\po\Documents\RAD Studio\Projects\Unit1.cpp=C:\Users\po\Dropbox\OBS\100Hz logger 相關資料\2013 OBS Data Logger\YB_cOntrol XE\main.cpp</Transaction>
+    <Transaction>2013/01/08 13:52:28.000.251,C:\Users\po\Documents\RAD Studio\Projects\Unit1.h=C:\Users\po\Dropbox\OBS\100Hz logger 相關資料\2013 OBS Data Logger\YB_cOntrol XE\main.h</Transaction>
+    <Transaction>2013/01/08 13:52:28.000.251,C:\Users\po\Documents\RAD Studio\Projects\Unit1.dfm=C:\Users\po\Dropbox\OBS\100Hz logger 相關資料\2013 OBS Data Logger\YB_cOntrol XE\main.dfm</Transaction>
+    <Transaction>2013/01/08 13:52:30.000.496,C:\Users\po\Documents\RAD Studio\Projects\Project1.cbproj=C:\Users\po\Dropbox\OBS\100Hz logger 相關資料\2013 OBS Data Logger\YB_cOntrol XE\Project1.cbproj</Transaction>
+    <Transaction>2013/01/08 14:09:28.000.624,=C:\Users\po\Dropbox\OBS\100Hz logger 相關資料\2013 OBS Data Logger\YB_cOntrol XE\Unit1.cpp</Transaction>
+    <Transaction>2013/01/08 14:09:47.000.646,C:\Users\po\Dropbox\OBS\100Hz logger 相關資料\2013 OBS Data Logger\YB_cOntrol XE\Unit1.cpp=C:\Users\po\Dropbox\OBS\100Hz logger 相關資料\2013 OBS Data Logger\YB_cOntrol XE\gEt_uArt.cpp</Transaction>
+    <Transaction>2013/01/08 14:09:47.000.646,C:\Users\po\Dropbox\OBS\100Hz logger 相關資料\2013 OBS Data Logger\YB_cOntrol XE\Unit1.h=C:\Users\po\Dropbox\OBS\100Hz logger 相關資料\2013 OBS Data Logger\YB_cOntrol XE\gEt_uArt.h</Transaction>
+  </Transactions>
+</BorlandProject>
