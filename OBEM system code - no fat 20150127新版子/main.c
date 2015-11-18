@@ -1,3 +1,4 @@
+//-- 引入github
 //2015 0305 增加I2C timeout
 // 2015 0303 RTC 更改為I2C取值 OBEM SYSTEM BOARD  V2.0
 // 2015 0129 OBEM SYSTEM BOARD !! V1.0
